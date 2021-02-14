@@ -1,0 +1,3 @@
+[submodule "Pushshift-Importer"]
+	path = Pushshift-Importer
+	url = git@github.com:prithvihv/Pushshift-Importer
