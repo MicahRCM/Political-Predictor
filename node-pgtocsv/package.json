@@ -1,0 +1,15 @@
+{
+  "name": "pgtocsv",
+  "version": "1.0.0",
+  "description": "",
+  "main": "transposeCSV.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "convert-array-to-csv": "^2.0.0",
+    "pg": "^8.5.1"
+  }
+}
