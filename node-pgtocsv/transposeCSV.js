@@ -8,7 +8,7 @@ const { mainModule } = require('process');
 
 // psql things
 const poolConnection = new Pool({
-    connectionString: "postgres://grover:pass1@localhost/gzp_data"
+    connectionString: "postgres://postgres:s@localhost/newredditcomments"
 });
 
 const SUBREDDIT_DISPERSION_THRESHOLD = 50
@@ -18,7 +18,7 @@ const SUBREDDIT_DISPERSION_THRESHOLD = 50
 let getAllViableSubreddits = async () => {
     const query = `
      select subreddit
-            from ppm_flair_prediction
+            from pcm_flair_prediction
             group by subreddit
             having count(*) >= ${SUBREDDIT_DISPERSION_THRESHOLD}
     `
@@ -29,18 +29,18 @@ let getAllViableSubreddits = async () => {
 let getFilteredFlairPredictionData = async () => {
     const query = `
         select * 
-        from ppm_flair_prediction
+        from pcm_flair_prediction
         where author in (
             select author
             from 
             (select author,flair, count(*)
-                from ppm_flair_prediction
+                from pcm_flair_prediction
                 group by author, flair) as t1
             group by author
             having count(*) = 1
         ) and subreddit in (
             select subreddit
-            from ppm_flair_prediction
+            from pcm_flair_prediction
             group by subreddit
             having count(*) >= ${SUBREDDIT_DISPERSION_THRESHOLD}
         );
@@ -90,10 +90,15 @@ const transCSV = (subreddits, data, final = [], authors = []) => {
 
 async function main(){
     let data = await getFilteredFlairPredictionData()
-    console.log(data)
+    // console.log(data)
+    data.forEach((n) => {
+        if (n.flair) {
+            console.log(n)
+        }
+    })
     let allViableSubreddits = await getAllViableSubreddits()
-    console.log(allViableSubreddits)
-    transCSV(allViableSubreddits,data)
+    // console.log(allViableSubreddits)
+    // transCSV(allViableSubreddits,data)
 }
 
 main()
