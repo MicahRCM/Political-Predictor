@@ -135,6 +135,7 @@ func getStore(c ComputePath, promise *sync.WaitGroup) {
 	}
 
 	count := 0
+	defer rows.Close()
 	for rows.Next() {
 		var user MetricsData
 		err = rows.Scan(&user.author, &user.metricsValue, &user.metricsNameCoded)
