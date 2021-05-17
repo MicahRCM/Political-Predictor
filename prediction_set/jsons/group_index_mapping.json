@@ -1,0 +1,18 @@
+{
+    "centrist_avg_c": 1,
+    "centrist_avg_p": 2,
+    "centrist_n_c": 3,
+    "centrist_n_p": 4,
+    "conservative_avg_c": 5,
+    "conservative_avg_p": 6,
+    "conservative_n_c": 7,
+    "conservative_n_p": 8,
+    "liberal_avg_c": 9,
+    "liberal_avg_p": 10,
+    "liberal_n_c": 11,
+    "liberal_n_p": 12,
+    "nonpol_avg_c": 13,
+    "nonpol_avg_p": 14,
+    "nonpol_n_c": 15,
+    "nonpol_n_p": 16
+}
