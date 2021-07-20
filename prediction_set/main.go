@@ -23,8 +23,6 @@ var (
 type MapSync struct {
 	sync.Mutex
 	Store map[string][]MetricsData
-
-	csvString [][]string
 }
 
 var userVariblesMap MapSync
@@ -51,13 +49,29 @@ func convertAndDump() {
 	w := csv.NewWriter(f)
 	defer w.Flush()
 
-	w.Write(append([]string{"author"}, array.NumberStrs(1, 12)...))
+	w.Write(append([]string{"author"}, array.NumberStrs(1, 14)...))
 
+	count := 0
 	for author, arrMetrics := range userVariblesMap.Store {
-		var variableValues []string = append([]string{""}, array.SameNTimes(12, "0")...)
+		var variableValues []string = append([]string{""}, array.SameNTimes(14, "0")...)
 		variableValues[0] = author
 		for _, metrics := range arrMetrics {
 			variableValues[metrics.metricsNameCoded] = fmt.Sprintf("%.2f", metrics.metricsValue)
+		}
+		count++
+
+		// validation
+		// var totalSum = 0
+		// for _, metrics := range arrMetrics {
+		// 	totalSum = variableValues[metrics.metricsNameCoded] + totalSum
+		// }
+
+		if len(variableValues) == 15 {
+			if count%10000 == 0 {
+				fmt.Print("$")
+			}
+		} else {
+			log.Fatalln("die")
 		}
 		if err := w.Write(variableValues); err != nil {
 			log.Fatalln("error writing record to file", err)
@@ -69,7 +83,6 @@ var DBComment *sql.DB
 
 func init() {
 
-	userVariblesMap.csvString = [][]string{append([]string{"author"}, array.NumberStrs(1, 12)...)}
 	userVariblesMap.Store = map[string][]MetricsData{}
 
 	confighelper.ParseEnvString(&POSTGRES_USER, "POSTGRES_USER")
@@ -118,6 +131,54 @@ func getQ(c *ComputePath) string {
 		WHERE %s is not null
 		group by (author, %s)
 	`, computations, c.variable, c.tableName, c.variable, c.variable)
+}
+
+func getStoreCustom(promise *sync.WaitGroup, tableNameType string, metricsNameCoded int) {
+	log.Println("[CUSTOMR]", " init")
+	q := fmt.Sprintf(`
+with argg_weird as (
+    select author, sum(n) as everything_not_null_count
+    from predictions_%s_set
+    where n_sub_type is not null
+    group by author
+),
+all_%s as (
+  select author, sum(n) as n_new
+  from all_%s_aggr
+  group by author
+)
+select acg.author, COALESCE((acg.n_new - everything_not_null_count), acg.n_new) as nonpol
+from  all_%s acg
+LEFT JOIN argg_weird as agweird
+on agweird.author = acg.author
+	`, tableNameType, tableNameType, tableNameType, tableNameType)
+	startTime := time.Now()
+	rows, err := DBComment.Query(q)
+	sinceTime := time.Since(startTime)
+	log.Println("[CUSTOMR]", " time to completed query:", sinceTime.Seconds())
+	if err != nil {
+		log.Fatalln("[CUSTOMR]", " error while querying", err)
+		return
+	}
+
+	count := 0
+	defer rows.Close()
+	for rows.Next() {
+		var user MetricsData
+		err = rows.Scan(&user.author, &user.metricsValue)
+		user.metricsNameCoded = metricsNameCoded
+		if err != nil {
+			log.Fatalln("[CUSTOMR]", " error while computing", err)
+			return
+		}
+		StoreUserAttribute(&user)
+		count++
+		if count%10000 == 0 {
+			fmt.Print("*")
+		}
+	}
+	log.Println("[CUSTOMR]", "COMPLETED! total time:", time.Since(startTime).Seconds(), " s and count:", count)
+	promise.Done()
 }
 
 // run on go
@@ -174,8 +235,10 @@ func main() {
 		},
 	}
 	var allPromise sync.WaitGroup
-	allPromise.Add(len(allComputes))
+	allPromise.Add(len(allComputes) + 2)
 
+	go getStoreCustom(&allPromise, "comment", 13)
+	go getStoreCustom(&allPromise, "post", 14)
 	for _, val := range allComputes {
 		go getStore(val, &allPromise)
 	}
